@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Join Master - Media Pembelajaran</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel untuk JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
+        .animate-fadeIn { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- ICONS (SVG Manual Replacement for Lucide) ---
+        const Icon = ({ name, className }) => {
+            const icons = {
+                Database: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s 9-1.34 9-3V5"/></svg>,
+                BookOpen: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+                Code: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>,
+                CheckCircle: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+                XCircle: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>,
+                Play: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+                RefreshCw: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>,
+                ChevronRight: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"/></svg>,
+                Layout: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>,
+                FileCode: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><polyline points="9 13 10 12 9 11"/><polyline points="15 13 14 12 15 11"/></svg>,
+                Copy: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+                Check: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+                Search: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+                DollarSign: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+                User: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+                Save: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
+                Info: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>,
+                Lightbulb: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="17" x2="12" y2="17"/><path d="M15 14c.66 0 1.25.13 1.78.36A9 9 0 1 0 5.22 14.36C5.75 14.13 6.34 14 7 14h8z"/><line x1="12" y1="23" x2="12" y2="23"/><line x1="10" y1="20" x2="14" y2="20"/></svg>,
+                Loader2: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            };
+            return icons[name] || null;
+        };
+
+        // --- KONFIGURASI ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwAYXSU8OJyWVhqjFGq4SdXieT_Dc1in27X_bGQERmYc7TYrHpSwquJ7OBaBhbZJWxN/exec";
+
+        // --- DATA DUMMY ---
+        const customerData = [
+            { id: 1, first_name: "Jared", email: "jared@dvd.com" },
+            { id: 2, first_name: "Mary", email: "mary@dvd.com" },
+            { id: 3, first_name: "Patricia", email: "pat@dvd.com" },
+            { id: 4, first_name: "Linda", email: "linda@dvd.com" },
+            { id: 5, first_name: "John", email: "john@dvd.com" }
+        ];
+
+        const paymentData = [
+            { id: 101, customer_id: 1, amount: "2.99" },
+            { id: 102, customer_id: 2, amount: "4.99" },
+            { id: 103, customer_id: 1, amount: "0.99" },
+            { id: 104, customer_id: 99, amount: "9.99" }
+        ];
+
+        // --- MAIN APP COMPONENT ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('materi');
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+                    <header className="bg-blue-700 text-white p-4 shadow-lg sticky top-0 z-50">
+                        <div className="max-w-6xl mx-auto flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <Icon name="Database" className="w-8 h-8" />
+                                <div>
+                                    <h1 className="text-xl font-bold">SQL Join Master</h1>
+                                    <p className="text-xs text-blue-200">Media Pembelajaran Basis Data XI PPLG</p>
+                                </div>
+                            </div>
+                            <nav className="hidden md:flex gap-1 bg-blue-800 p-1 rounded-lg">
+                                {['materi', 'simulasi', 'latihan', 'kuis'].map((tab) => (
+                                    <button
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-200 hover:text-white hover:bg-blue-600'}`}
+                                    >
+                                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                    </header>
+
+                    {/* Mobile Nav */}
+                    <div className="md:hidden flex justify-around bg-white border-b p-2 sticky top-[72px] z-40 overflow-x-auto">
+                        {['materi', 'simulasi', 'latihan', 'kuis'].map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`text-sm font-medium px-3 py-1 rounded-full whitespace-nowrap ${activeTab === tab ? 'bg-blue-100 text-blue-700' : 'text-slate-500'}`}
+                            >
+                                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+
+                    <main className="max-w-6xl mx-auto p-4 md:p-6 pb-20">
+                        {activeTab === 'materi' && <MateriSection onChangeTab={setActiveTab} />}
+                        {activeTab === 'simulasi' && <SimulasiSection />}
+                        {activeTab === 'latihan' && <LatihanSection />}
+                        {activeTab === 'kuis' && <KuisSection />}
+                    </main>
+
+                    <footer className="bg-slate-200 text-center p-4 text-slate-500 text-sm mt-8">
+                        <p>&copy; {new Date().getFullYear()} Lab PPLG. Dibuat untuk pembelajaran Basis Data.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // --- SUB COMPONENTS ---
+        
+        const MateriSection = ({ onChangeTab }) => {
+            const materiList = [
+                {
+                    title: "Konsep Dasar: Apa itu JOIN?",
+                    content: "Dalam database relasional, data sering disebar ke banyak tabel untuk menghindari duplikasi (Normalisasi). JOIN adalah cara untuk 'menjahit' kembali tabel-tabel tersebut menjadi satu informasi utuh.",
+                    analogy: "Bayangkan seperti memasangkan kaos kaki kiri (Tabel A) dan kanan (Tabel B). Kita mencari pasangan yang cocok berdasarkan warna/motifnya (Primary Key & Foreign Key).",
+                    example: "Menggabungkan data 'Siswa' dengan data 'Nilai Ujian' untuk membuat rapor.",
+                    iconName: "Layout",
+                    color: "bg-purple-50 border-purple-200",
+                    iconColor: "text-purple-600"
+                },
+                {
+                    title: "INNER JOIN (Irisan)",
+                    content: "Hanya menampilkan baris data yang memiliki pasangan yang cocok di KEDUA tabel. Jika ada data di tabel kiri yang tidak punya pasangan di kanan (atau sebaliknya), data tersebut dibuang.",
+                    analogy: "Seperti pertemuan Reuni. Hanya orang yang datang (ada di daftar undangan DAN hadir di lokasi) yang bisa bertemu. Yang diundang tapi tidak datang, tidak masuk hitungan.",
+                    example: "Menampilkan daftar siswa yang SUDAH pernah meminjam buku perpustakaan. Siswa yang belum pernah pinjam tidak akan muncul.",
+                    iconName: "Database", 
+                    color: "bg-blue-50 border-blue-200",
+                    iconColor: "text-blue-600"
+                },
+                {
+                    title: "LEFT JOIN (Prioritas Kiri)",
+                    content: "Menampilkan SEMUA data dari tabel kiri (Tabel Utama), beserta data pasangannya dari tabel kanan. Jika tabel kanan tidak punya pasangan, kolomnya akan diisi NULL (kosong).",
+                    analogy: "Seperti daftar Absensi Kelas. Semua nama siswa diabsen (Tabel Kiri). Jika siswa mengerjakan tugas (Tabel Kanan), nilainya dicatat. Jika tidak mengerjakan, namanya tetap dipanggil tapi nilainya kosong (NULL).",
+                    example: "Menampilkan SEMUA pelanggan, termasuk yang belum pernah berbelanja. Tujuannya untuk melihat siapa saja member pasif.",
+                    iconName: "Database",
+                    color: "bg-green-50 border-green-200",
+                    iconColor: "text-green-600"
+                },
+                {
+                    title: "RIGHT JOIN (Prioritas Kanan)",
+                    content: "Kebalikan dari Left Join. Menampilkan SEMUA data dari tabel kanan, beserta pasangan dari tabel kiri. Jarang digunakan karena biasanya bisa diganti dengan Left Join dengan menukar posisi tabel.",
+                    analogy: "Seperti Menu Restoran (Tabel Kanan). Kita ingin melihat daftar semua menu, dan siapa saja pelanggan (Tabel Kiri) yang memesannya hari ini. Menu yang tidak laku tetap muncul di daftar, tapi nama pemesannya NULL.",
+                    example: "Mengecek stok barang di gudang (Tabel Kanan) untuk melihat barang mana saja yang belum pernah terjual (Tabel Kiri kosong/NULL).",
+                    iconName: "Database",
+                    color: "bg-orange-50 border-orange-200",
+                    iconColor: "text-orange-600"
+                }
+            ];
+
+            return (
+                <div className="space-y-8 animate-fadeIn">
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-slate-800 mb-3">Memahami Relasi & JOIN</h2>
+                        <p className="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                            Kunci utama dalam database adalah bagaimana kita menghubungkan data yang terpisah. 
+                            Pelajari logika di balik setiap jenis penggabungan di bawah ini.
+                        </p>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {materiList.map((item, idx) => (
+                            <div key={idx} className={`p-6 rounded-2xl border ${item.color} shadow-sm hover:shadow-lg transition-all duration-300 bg-white`}>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="p-3 bg-slate-50 rounded-xl shadow-inner">
+                                        <Icon name={item.iconName} className={`w-6 h-6 ${item.iconColor}`} />
+                                    </div>
+                                    <h3 className="font-bold text-xl text-slate-800">{item.title}</h3>
+                                </div>
+                                <p className="text-slate-700 mb-4 leading-relaxed border-b border-slate-100 pb-4 min-h-[80px]">
+                                    {item.content}
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="bg-slate-50 p-3 rounded-lg text-sm flex gap-3 items-start">
+                                        <Icon name="Lightbulb" className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="font-bold text-slate-700 block mb-1">Analogi:</span>
+                                            <span className="text-slate-600">{item.analogy}</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-blue-50 p-3 rounded-lg text-sm flex gap-3 items-start">
+                                        <Icon name="Info" className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <span className="font-bold text-blue-800 block mb-1">Studi Kasus:</span>
+                                            <span className="text-blue-700">{item.example}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white p-8 rounded-3xl shadow-xl mt-8 flex flex-col md:flex-row items-center justify-between gap-8">
+                        <div className="flex-1">
+                            <h3 className="text-2xl font-bold mb-3 flex items-center gap-2">
+                                <Icon name="RefreshCw" className="w-6 h-6 animate-spin-slow" /> Teori Saja Tidak Cukup!
+                            </h3>
+                            <p className="text-blue-100 text-lg leading-relaxed">
+                                Cara terbaik memahami perbedaan <strong>INNER</strong> vs <strong>LEFT</strong> adalah dengan melihat datanya langsung. 
+                                Ayo masuk ke laboratorium simulasi.
+                            </p>
+                        </div>
+                        <button onClick={() => onChangeTab('simulasi')} className="bg-white text-blue-700 px-8 py-4 rounded-full font-bold hover:bg-blue-50 transition-all transform hover:scale-105 shadow-lg flex items-center gap-3 text-lg">
+                            <Icon name="Play" className="w-6 h-6" /> Mulai Simulasi
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const SimulasiSection = () => {
+            const [joinType, setJoinType] = useState('INNER');
+            const [result, setResult] = useState([]);
+            const [query, setQuery] = useState('');
+
+            useEffect(() => {
+                let res = [];
+                let q = `SELECT c.first_name, p.amount \nFROM customer c \n${joinType} JOIN payment p \nON c.customer_id = p.customer_id;`;
+                setQuery(q);
+
+                if (joinType === 'INNER') {
+                    res = customerData.filter(c => paymentData.some(p => p.customer_id === c.id)).map(c => {
+                        const payments = paymentData.filter(p => p.customer_id === c.id);
+                        return payments.map(p => ({ ...c, amount: p.amount, match: true }));
+                    }).flat();
+                } else if (joinType === 'LEFT') {
+                    res = customerData.map(c => {
+                        const payments = paymentData.filter(p => p.customer_id === c.id);
+                        if (payments.length > 0) return payments.map(p => ({ ...c, amount: p.amount, match: true }));
+                        return [{ ...c, amount: <span className="text-red-500 italic">NULL</span>, match: false }];
+                    }).flat();
+                } else if (joinType === 'RIGHT') {
+                    res = paymentData.map(p => {
+                        const customer = customerData.find(c => c.id === p.customer_id);
+                        if (customer) return { ...customer, amount: p.amount, match: true };
+                        return { id: null, first_name: <span className="text-red-500 italic">NULL</span>, email: '-', amount: p.amount, match: false, customer_id: p.customer_id };
+                    });
+                }
+                setResult(res);
+            }, [joinType]);
+
+            return (
+                <div className="animate-fadeIn">
+                    <div className="flex flex-col md:flex-row gap-6 mb-6">
+                        <div className="md:w-1/3 space-y-4">
+                            <div className="bg-white p-5 rounded-xl shadow border border-slate-200">
+                                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><Icon name="Code" className="w-5 h-5 text-blue-600" /> Editor Query</h3>
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-slate-600">Pilih Jenis Join:</label>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {['INNER', 'LEFT', 'RIGHT'].map(type => (
+                                            <button key={type} onClick={() => setJoinType(type)} className={`p-2 text-xs font-bold rounded-lg border transition-all ${joinType === type ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>{type}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="mt-4 bg-slate-800 text-green-400 p-4 rounded-lg font-mono text-sm overflow-x-auto whitespace-pre">{query}</div>
+                            </div>
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
+                                <p><strong>Tips Guru:</strong> Kasus ini meniru database <em>DVD Rental</em>. Kita melihat siapa (Customer) yang membayar sewa (Payment). Perhatikan kolom <strong>Status Join</strong>.</p>
+                            </div>
+                        </div>
+                        <div className="md:w-2/3 space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+                                    <div className="text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-1"><Icon name="User" className="w-3 h-3" /> Tabel Customer (Left)</div>
+                                    <div className="overflow-hidden rounded border border-slate-200">
+                                        <table className="w-full text-xs"><thead className="bg-slate-100"><tr><th className="p-2 text-left">ID</th><th className="p-2 text-left">Name</th></tr></thead>
+                                            <tbody>{customerData.map(c => (<tr key={c.id} className="border-t border-slate-100 hover:bg-yellow-50"><td className="p-2">{c.id}</td><td className="p-2 font-medium">{c.first_name}</td></tr>))}</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div className="bg-white p-3 rounded-lg shadow-sm border border-slate-200">
+                                    <div className="text-xs font-bold text-slate-500 mb-2 uppercase flex items-center gap-1"><Icon name="DollarSign" className="w-3 h-3" /> Tabel Payment (Right)</div>
+                                    <div className="overflow-hidden rounded border border-slate-200">
+                                        <table className="w-full text-xs"><thead className="bg-slate-100"><tr><th className="p-2 text-left">ID</th><th className="p-2 text-left">Amount</th><th className="p-2 text-left">Cust_ID</th></tr></thead>
+                                            <tbody>{paymentData.map(p => (<tr key={p.id} className="border-t border-slate-100 hover:bg-yellow-50"><td className="p-2">{p.id}</td><td className="p-2 font-bold text-green-600">${p.amount}</td><td className="p-2 text-slate-500">{p.customer_id}</td></tr>))}</tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white p-5 rounded-xl shadow-lg border-2 border-indigo-100 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-2 h-full bg-indigo-500"></div>
+                                <h3 className="font-bold text-lg mb-4 text-indigo-900 flex items-center gap-2">Hasil Query <span className="text-sm font-normal text-indigo-600 bg-indigo-100 px-2 py-1 rounded-md">{joinType} JOIN</span></h3>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm"><thead className="bg-indigo-50 text-indigo-900"><tr><th className="p-3 text-left">Customer Name</th><th className="p-3 text-left">Payment Amount</th><th className="p-3 text-left w-32">Status Join</th></tr></thead>
+                                        <tbody>
+                                            {result.map((row, i) => (
+                                                <tr key={i} className="border-b border-indigo-50 hover:bg-indigo-50/50 transition-colors">
+                                                    <td className="p-3 font-medium">{row.first_name}</td>
+                                                    <td className="p-3 font-mono">{typeof row.amount === 'string' ? `$${row.amount}` : row.amount}</td>
+                                                    <td className="p-3">{row.match ? <span className="inline-flex items-center gap-1 text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full"><Icon name="CheckCircle" className="w-3 h-3" /> MATCHED</span> : <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-1 rounded-full"><Icon name="XCircle" className="w-3 h-3" /> UNMATCHED</span>}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const LatihanSection = () => {
+            const [copiedId, setCopiedId] = useState(null);
+            const [filter, setFilter] = useState('');
+            const codeExamples = [
+                { title: "1. Inner Join Dasar: Customer & Payment", code: "SELECT c.first_name, c.last_name, p.amount \nFROM customer c \nINNER JOIN payment p ON c.customer_id = p.customer_id;", desc: "Menggabungkan tabel customer dan payment untuk melihat siapa membayar berapa." },
+                { title: "2. Inner Join: Film & Language", code: "SELECT f.title, l.name as language \nFROM film f \nINNER JOIN language l ON f.language_id = l.language_id;", desc: "Melihat judul film beserta bahasa yang digunakan." },
+                { title: "3. Inner Join: Staff & Address", code: "SELECT s.first_name, s.last_name, a.address \nFROM staff s \nINNER JOIN address a ON s.address_id = a.address_id;", desc: "Mencari alamat tempat tinggal staff/karyawan." },
+                { title: "4. Join 3 Tabel: Lokasi Lengkap", code: "SELECT c.city, co.country \nFROM city c \nJOIN country co ON c.country_id = co.country_id;", desc: "Menggabungkan tabel kota dan negara." },
+                { title: "5. Join 3 Tabel: Film & Kategori", code: "SELECT f.title, c.name as category \nFROM film f \nJOIN film_category fc ON f.film_id = fc.film_id \nJOIN category c ON fc.category_id = c.category_id;", desc: "Menghubungkan film ke kategorinya melalui tabel perantara (film_category)." },
+                { title: "6. Join dengan Alias Tabel", code: "SELECT c.first_name, r.rental_date \nFROM customer c \nJOIN rental r ON c.customer_id = r.customer_id;", desc: "Menggunakan inisial 'c' dan 'r' agar penulisan query lebih efisien." },
+                { title: "7. Left Join: Film Tanpa Inventory", code: "SELECT f.title \nFROM film f \nLEFT JOIN inventory i ON f.film_id = i.film_id \nWHERE i.inventory_id IS NULL;", desc: "Mencari judul film yang tidak memiliki stok fisik di toko (inventory)." },
+                { title: "8. Right Join: Bahasa Tanpa Film", code: "SELECT l.name, f.title \nFROM film f \nRIGHT JOIN language l ON f.language_id = l.language_id \nWHERE f.film_id IS NULL;", desc: "Mencari bahasa yang terdaftar tapi tidak dipakai di film manapun." },
+                { title: "9. Filter Join: Rental Mei 2005", code: "SELECT c.email, r.rental_date \nFROM customer c \nJOIN rental r ON c.customer_id = r.customer_id \nWHERE r.rental_date >= '2005-05-01' AND r.rental_date < '2005-06-01';", desc: "Menampilkan transaksi sewa hanya pada bulan Mei 2005." },
+                { title: "10. Aggregate Join: Total Bayar", code: "SELECT c.first_name, SUM(p.amount) as total_bayar \nFROM customer c \nJOIN payment p ON c.customer_id = p.customer_id \nGROUP BY c.customer_id;", desc: "Menghitung total uang yang dibayarkan oleh setiap customer." },
+                { title: "11. Aggregate Join: Film Terlaris", code: "SELECT f.title, COUNT(r.rental_id) as jumlah_sewa \nFROM film f \nJOIN inventory i ON f.film_id = i.film_id \nJOIN rental r ON i.inventory_id = r.inventory_id \nGROUP BY f.title \nORDER BY jumlah_sewa DESC;", desc: "Menghitung berapa kali setiap film dipinjam." },
+                { title: "12. Multiple Joins: Aktor Film", code: "SELECT f.title, a.first_name, a.last_name \nFROM film f \nJOIN film_actor fa ON f.film_id = fa.film_id \nJOIN actor a ON fa.actor_id = a.actor_id;", desc: "Daftar film beserta aktor-aktor yang memainkannya." },
+                { title: "13. Filter Negara: Customer Indo", code: "SELECT c.first_name, co.country \nFROM customer c \nJOIN address a ON c.address_id = a.address_id \nJOIN city ci ON a.city_id = ci.city_id \nJOIN country co ON ci.country_id = co.country_id \nWHERE co.country = 'Indonesia';", desc: "Mencari customer yang berasal dari Indonesia." },
+                { title: "14. Self Join: Customer Nama Sama", code: "SELECT A.first_name, A.last_name, B.first_name, B.last_name \nFROM customer A \nJOIN customer B ON A.last_name = B.last_name \nWHERE A.customer_id <> B.customer_id;", desc: "Mencari pasangan customer yang memiliki nama belakang sama." },
+                { title: "15. Having Clause: Loyal Customer", code: "SELECT c.first_name, COUNT(r.rental_id) \nFROM customer c \nJOIN rental r ON c.customer_id = r.customer_id \nGROUP BY c.customer_id \nHAVING COUNT(r.rental_id) > 30;", desc: "Hanya menampilkan customer yang sudah menyewa lebih dari 30 kali." },
+                { title: "16. Cross Join (Eksperimen)", code: "SELECT c.name as category, l.name as language \nFROM category c \nCROSS JOIN language l;", desc: "Memasangkan setiap kategori dengan setiap bahasa (Cartesian Product)." },
+                { title: "17. Complex: Pendapatan Kategori", code: "SELECT c.name, SUM(p.amount) as revenue \nFROM category c \nJOIN film_category fc ON c.category_id = fc.category_id \nJOIN inventory i ON fc.film_id = i.film_id \nJOIN rental r ON i.inventory_id = r.inventory_id \nJOIN payment p ON r.rental_id = p.rental_id \nGROUP BY c.name;", desc: "Menghitung total pendapatan berdasarkan kategori film (Action, Comedy, dll)." },
+                { title: "18. Subquery Join: Film Tertentu", code: "SELECT c.first_name, c.last_name \nFROM customer c \nJOIN rental r ON c.customer_id = r.customer_id \nJOIN inventory i ON r.inventory_id = i.inventory_id \nWHERE i.film_id IN (SELECT film_id FROM film WHERE title = 'ALASKA PHANTOM');", desc: "Mencari siapa saja yang pernah menyewa film 'Alaska Phantom'." },
+                { title: "19. Join + Order By Durasi", code: "SELECT f.title, f.length, c.name \nFROM film f \nJOIN film_category fc ON f.film_id = fc.film_id \nJOIN category c ON fc.category_id = c.category_id \nWHERE c.name = 'Action' \nORDER BY f.length DESC;", desc: "Mengurutkan film Action dari durasi terpanjang." },
+                { title: "20. String Func: Alamat Lengkap", code: "SELECT c.first_name, CONCAT(a.address, ', ', ci.city) as full_address \nFROM customer c \nJOIN address a ON c.address_id = a.address_id \nJOIN city ci ON a.city_id = ci.city_id;", desc: "Menggabungkan nama customer dengan alamat lengkapnya." },
+                { title: "21. Select Distinct (Nilai Unik)", code: "SELECT DISTINCT rating \nFROM film;", desc: "Menampilkan daftar rating film tanpa ada duplikasi (G, PG, R, dll)." },
+                { title: "22. Where AND (Kondisi Ganda)", code: "SELECT title, length, rating \nFROM film \nWHERE rating = 'PG' AND length > 120;", desc: "Mencari film PG yang durasinya lebih dari 2 jam." },
+                { title: "23. Where OR (Pilihan)", code: "SELECT title, rating \nFROM film \nWHERE rating = 'G' OR rating = 'PG';", desc: "Menampilkan film yang ratingnya G ATAU PG." },
+                { title: "24. Operator IN (Daftar Nilai)", code: "SELECT first_name, last_name \nFROM customer \nWHERE customer_id IN (1, 5, 10, 15);", desc: "Mengambil data customer dengan ID spesifik 1, 5, 10, dan 15." },
+                { title: "25. Operator NOT IN (Pengecualian)", code: "SELECT title, rating \nFROM film \nWHERE rating NOT IN ('R', 'NC-17');", desc: "Menampilkan semua film KECUALI yang ratingnya dewasa." },
+                { title: "26. Operator BETWEEN (Rentang)", code: "SELECT payment_id, amount \nFROM payment \nWHERE amount BETWEEN 5.00 AND 9.00;", desc: "Mencari pembayaran dengan nominal antara 5 sampai 9 dollar." },
+                { title: "27. LIKE (Awalan Kata)", code: "SELECT first_name, last_name \nFROM customer \nWHERE first_name LIKE 'Jen%';", desc: "Mencari customer yang namanya diawali 'Jen' (contoh: Jennifer, Jenny)." },
+                { title: "28. LIKE (Mengandung Kata)", code: "SELECT title, description \nFROM film \nWHERE description LIKE '%Drama%';", desc: "Mencari film yang deskripsinya mengandung kata 'Drama' di mana saja." },
+                { title: "29. ILIKE (Pencarian Case-Insensitive)", code: "SELECT title \nFROM film \nWHERE title ILIKE 'stAr%';", desc: "Mencari judul berawalan 'star' tanpa peduli huruf besar/kecil (Fitur PostgreSQL)." },
+                { title: "30. IS NULL (Data Kosong)", code: "SELECT address, address2 \nFROM address \nWHERE address2 IS NULL;", desc: "Mencari alamat yang baris keduanya kosong/tidak diisi." },
+                { title: "31. IS NOT NULL (Data Terisi)", code: "SELECT email \nFROM customer \nWHERE email IS NOT NULL;", desc: "Memastikan kita hanya mengambil customer yang punya email." },
+                { title: "32. Order By ASC (A-Z)", code: "SELECT first_name, last_name \nFROM actor \nORDER BY last_name ASC;", desc: "Mengurutkan nama aktor berdasarkan nama belakang dari A ke Z." },
+                { title: "33. Order By DESC (Terbesar)", code: "SELECT title, length \nFROM film \nORDER BY length DESC;", desc: "Mengurutkan film dari durasi terpanjang ke terpendek." },
+                { title: "34. Order By Multiple Columns", code: "SELECT first_name, last_name \nFROM customer \nORDER BY last_name ASC, first_name DESC;", desc: "Urutkan nama belakang A-Z, jika sama, urutkan nama depan Z-A." },
+                { title: "35. LIMIT (Batasi Hasil)", code: "SELECT title, length \nFROM film \nORDER BY length DESC \nLIMIT 5;", desc: "Hanya menampilkan 5 film terpanjang (Top 5)." },
+                { title: "36. OFFSET (Halaman Selanjutnya)", code: "SELECT title \nFROM film \nORDER BY title \nLIMIT 10 OFFSET 10;", desc: "Melewati 10 data pertama, lalu ambil 10 data berikutnya (Halaman 2)." },
+                { title: "37. COUNT (Hitung Baris)", code: "SELECT COUNT(*) as total_film \nFROM film;", desc: "Menghitung total jumlah film yang ada di database." },
+                { title: "38. COUNT DISTINCT (Hitung Unik)", code: "SELECT COUNT(DISTINCT amount) \nFROM payment;", desc: "Menghitung ada berapa variasi harga pembayaran yang unik." },
+                { title: "39. SUM (Penjumlahan)", code: "SELECT SUM(amount) as total_omzet \nFROM payment;", desc: "Menghitung total pendapatan kotor dari semua transaksi." },
+                { title: "40. AVG (Rata-rata)", code: "SELECT AVG(length) as rata_durasi \nFROM film;", desc: "Menghitung rata-rata durasi semua film." },
+                { title: "41. MIN & MAX (Extremes)", code: "SELECT MIN(amount) as termurah, MAX(amount) as termahal \nFROM payment;", desc: "Mencari nilai transaksi paling kecil dan paling besar." },
+                { title: "42. GROUP BY (Kelompok)", code: "SELECT rating, COUNT(*) as jumlah \nFROM film \nGROUP BY rating;", desc: "Menghitung jumlah film untuk setiap kategori rating (G, PG, R, dll)." },
+                { title: "43. GROUP BY + ORDER BY", code: "SELECT staff_id, COUNT(*) as total_transaksi \nFROM payment \nGROUP BY staff_id \nORDER BY total_transaksi DESC;", desc: "Melihat staff mana yang paling rajin melayani transaksi." },
+                { title: "44. HAVING (Filter Agregasi)", code: "SELECT customer_id, SUM(amount) \nFROM payment \nGROUP BY customer_id \nHAVING SUM(amount) > 200;", desc: "Hanya menampilkan customer yang total belanjanya di atas $200." },
+                { title: "45. String Function: UPPER/LOWER", code: "SELECT LOWER(first_name), UPPER(last_name) \nFROM customer;", desc: "Mengubah teks menjadi huruf kecil atau huruf kapital semua." },
+                { title: "46. String Function: LENGTH", code: "SELECT first_name, LENGTH(first_name) as panjang_nama \nFROM customer \nORDER BY panjang_nama DESC;", desc: "Mencari siapa yang punya nama depan terpanjang." },
+                { title: "47. Date Function: EXTRACT", code: "SELECT EXTRACT(YEAR FROM rental_date) as tahun, COUNT(*) \nFROM rental \nGROUP BY tahun;", desc: "Mengelompokkan jumlah penyewaan berdasarkan tahun." },
+                { title: "48. Subquery Sederhana", code: "SELECT title, length \nFROM film \nWHERE length > (SELECT AVG(length) FROM film);", desc: "Menampilkan film yang durasinya di atas rata-rata durasi semua film." },
+                { title: "49. Subquery dengan IN", code: "SELECT first_name, last_name \nFROM customer \nWHERE address_id IN (SELECT address_id FROM address WHERE district = 'California');", desc: "Mencari customer yang tinggal di distrik California." },
+                { title: "50. CASE WHEN (Logika IF)", code: "SELECT title, length, \nCASE \n  WHEN length < 60 THEN 'Short' \n  WHEN length < 120 THEN 'Medium' \n  ELSE 'Long' \nEND as duration_category \nFROM film;", desc: "Membuat kategori baru (Short/Medium/Long) berdasarkan durasi film." }
+            ];
+
+            const filteredCodes = codeExamples.filter(item => item.title.toLowerCase().includes(filter.toLowerCase()) || item.code.toLowerCase().includes(filter.toLowerCase()) || item.desc.toLowerCase().includes(filter.toLowerCase()));
+
+            const handleCopy = (text, idx) => {
+                navigator.clipboard.writeText(text);
+                setCopiedId(idx);
+                setTimeout(() => setCopiedId(null), 2000);
+            };
+
+            return (
+                <div className="animate-fadeIn">
+                    <div className="mb-8">
+                        <h2 className="text-3xl font-bold text-slate-800 mb-2">Latihan Code SQL (DVD Rental DB)</h2>
+                        <p className="text-slate-600 mb-4">Kumpulan <strong>50 contoh sintaks</strong> lengkap mulai dari JOIN, Agregasi, hingga Filtering Lanjutan. Gunakan sebagai referensi saat mengerjakan tugas.</p>
+                        <div className="relative max-w-md">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Icon name="Search" className="h-5 w-5 text-slate-400" /></div>
+                            <input type="text" placeholder="Cari kode (contoh: 'group by', 'count', 'join')..." className="pl-10 pr-4 py-2 w-full border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" value={filter} onChange={(e) => setFilter(e.target.value)} />
+                        </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {filteredCodes.length > 0 ? (
+                            filteredCodes.map((item, idx) => (
+                                <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                                    <div className="bg-slate-50 p-3 border-b border-slate-200 flex justify-between items-center">
+                                        <h3 className="font-bold text-slate-700 text-sm flex items-center gap-2 truncate pr-2" title={item.title}><Icon name="FileCode" className="w-4 h-4 text-blue-600 flex-shrink-0" /> {item.title}</h3>
+                                        <button onClick={() => handleCopy(item.code, idx)} className="text-slate-400 hover:text-blue-600 transition-colors flex-shrink-0" title="Salin Code">
+                                            {copiedId === idx ? <Icon name="Check" className="w-4 h-4 text-green-500" /> : <Icon name="Copy" className="w-4 h-4" />}
+                                        </button>
+                                    </div>
+                                    <div className="p-4 bg-slate-900 overflow-x-auto group relative flex-grow"><pre className="text-blue-300 font-mono text-xs whitespace-pre-wrap">{item.code}</pre></div>
+                                    <div className="p-3 bg-white text-xs text-slate-500 border-t border-slate-100 italic">💡 {item.desc}</div>
+                                </div>
+                            ))
+                        ) : (<div className="col-span-2 text-center py-10 text-slate-500">Tidak ditemukan kode yang cocok dengan pencarian "{filter}".</div>)}
+                    </div>
+                </div>
+            );
+        };
+
+        const KuisSection = () => {
+            const [userData, setUserData] = useState({ nis: '', nama: '' });
+            const [isRegistered, setIsRegistered] = useState(false);
+            const [isSending, setIsSending] = useState(false);
+            const [sendSuccess, setSendSuccess] = useState(null);
+            const defaultQuestions = [
+                { question: "Jenis JOIN manakah yang HANYA menampilkan data jika kedua tabel (kiri dan kanan) memiliki nilai yang cocok?", options: ["LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "CROSS JOIN"], answer: "INNER JOIN", explanation: "INNER JOIN bekerja seperti irisan himpunan, hanya mengambil data yang berpasangan di kedua tabel." },
+                { question: "Jika kita ingin menampilkan SEMUA data pelanggan dari tabel kiri, meskipun mereka belum pernah melakukan transaksi (tabel kanan), gunakan...", options: ["INNER JOIN", "LEFT JOIN", "RIGHT JOIN", "FULL JOIN"], answer: "LEFT JOIN", explanation: "LEFT JOIN memprioritaskan tabel sebelah kiri (FROM ...) untuk ditampilkan seluruhnya, mengisi NULL jika kanan kosong." },
+                { question: "Apa yang terjadi pada kolom dari tabel kanan jika menggunakan LEFT JOIN dan tidak ditemukan kecocokan?", options: ["Diisi dengan angka 0", "Baris tersebut dihapus", "Diisi dengan NULL", "Terjadi error"], answer: "Diisi dengan NULL", explanation: "Database mengisi kekosongan relasi dengan nilai NULL untuk menandakan ketiadaan data." },
+                { question: "Sintaks manakah yang benar untuk menghubungkan tabel 'siswa' dan 'kelas' berdasarkan 'kelas_id'?", options: ["ON siswa.id = kelas.id", "ON siswa.kelas_id = kelas.id", "WHERE siswa.id = kelas.id", "CONNECT siswa.kelas_id WITH kelas.id"], answer: "ON siswa.kelas_id = kelas.id", explanation: "Kita menghubungkan Foreign Key (siswa.kelas_id) dengan Primary Key (kelas.id)." },
+                { question: "Manakah pernyataan yang benar tentang RIGHT JOIN?", options: ["Sama persis dengan LEFT JOIN", "Menampilkan semua data tabel kanan, dan yang cocok dari kiri", "Menampilkan semua data tabel kiri, dan yang cocok dari kanan", "Hanya menampilkan data yang tidak cocok"], answer: "Menampilkan semua data tabel kanan, dan yang cocok dari kiri", explanation: "RIGHT JOIN adalah kebalikan dari LEFT JOIN, memprioritaskan tabel yang ditulis setelah kata 'JOIN'." },
+                { question: "Fungsi agregasi untuk menghitung jumlah total baris dalam sebuah tabel adalah...", options: ["SUM(*)", "TOTAL(*)", "COUNT(*)", "ADD(*)"], answer: "COUNT(*)", explanation: "COUNT(*) menghitung semua row, termasuk yang bernilai NULL sekalipun." },
+                { question: "Untuk mengetahui total omzet penjualan (menjumlahkan kolom 'amount'), gunakan fungsi...", options: ["COUNT(amount)", "MAX(amount)", "SUM(amount)", "AVG(amount)"], answer: "SUM(amount)", explanation: "SUM digunakan untuk operasi aritmatika penjumlahan pada kolom numerik." },
+                { question: "Jika ingin mencari nilai rata-rata dari durasi film, sintaksnya adalah...", options: ["SELECT AVERAGE(length) FROM film", "SELECT AVG(length) FROM film", "SELECT MEAN(length) FROM film", "SELECT MEDIAN(length) FROM film"], answer: "SELECT AVG(length) FROM film", explanation: "AVG adalah singkatan standar SQL untuk Average." },
+                { question: "Perbedaan utama antara COUNT(*) dan COUNT(nama_kolom) adalah...", options: ["Tidak ada bedanya", "COUNT(nama_kolom) tidak menghitung nilai NULL", "COUNT(*) lebih lambat", "COUNT(nama_kolom) menghitung duplikat saja"], answer: "COUNT(nama_kolom) tidak menghitung nilai NULL", explanation: "Jika kolom tersebut berisi NULL, COUNT(kolom) akan mengabaikannya, sedangkan COUNT(*) tetap menghitung barisnya." },
+                { question: "Fungsi MIN() dan MAX() digunakan untuk...", options: ["Mencari nilai tengah", "Mencari nilai terkecil dan terbesar", "Menghitung total dan rata-rata", "Mencari nilai yang paling sering muncul"], answer: "Mencari nilai terkecil dan terbesar", explanation: "MIN = Minimum (terkecil), MAX = Maximum (terbesar)." },
+                { question: "Untuk mencari nama pelanggan yang diawali dengan huruf 'A', kita menggunakan operator...", options: ["=", "IN", "LIKE", "BETWEEN"], answer: "LIKE", explanation: "LIKE digunakan untuk pencarian pola string (pattern matching)." },
+                { question: "Pola LIKE manakah yang berarti 'berakhiran dengan kata son'?", options: ["'son%'", "'%son'", "'%son%'", "'_son'"], answer: "'%son'", explanation: "Tanda % di depan berarti 'teks apapun sebelumnya', diakhiri dengan 'son'." },
+                { question: "Apa fungsi wildcard underscore (_) dalam operator LIKE?", options: ["Mewakili banyak karakter", "Mewakili tepat satu karakter", "Mewakili angka saja", "Tidak ada fungsinya"], answer: "Mewakili tepat satu karakter", explanation: "Contoh: 'A_' cocok dengan 'An', 'Ad', tapi tidak 'Ana'." },
+                { question: "Jika ingin memfilter data yang kotanya adalah 'Jakarta' ATAU 'Surabaya', cara paling efisien adalah...", options: ["WHERE city = 'Jakarta' OR city = 'Surabaya'", "WHERE city IN ('Jakarta', 'Surabaya')", "WHERE city LIKE 'Jakarta%Surabaya'", "WHERE city BETWEEN 'Jakarta' AND 'Surabaya'"], answer: "WHERE city IN ('Jakarta', 'Surabaya')", explanation: "Operator IN lebih ringkas daripada menulis banyak OR." },
+                { question: "Operator untuk memfilter nilai dalam rentang tertentu (misal harga 1000 - 5000) adalah...", options: ["IN", "LIKE", "BETWEEN", "RANGE"], answer: "BETWEEN", explanation: "Sintaks: WHERE harga BETWEEN 1000 AND 5000." },
+                { question: "Bagaimana cara memfilter baris yang kolom email-nya KOSONG (belum diisi)?", options: ["WHERE email = NULL", "WHERE email IS NULL", "WHERE email = ''", "WHERE email == NULL"], answer: "WHERE email IS NULL", explanation: "Dalam SQL, NULL tidak bisa dibandingkan dengan '=', harus pakai 'IS NULL'." },
+                { question: "Klausul GROUP BY wajib digunakan jika...", options: ["Kita menggunakan WHERE", "Kita menggunakan JOIN", "Kita mencampur kolom biasa dan fungsi agregasi (COUNT/SUM) di SELECT", "Kita ingin mengurutkan data"], answer: "Kita mencampur kolom biasa dan fungsi agregasi (COUNT/SUM) di SELECT", explanation: "Contoh: SELECT kelas, COUNT(*) ... wajib GROUP BY kelas." },
+                { question: "Apa fungsi dari ORDER BY ... DESC?", options: ["Mengurutkan dari kecil ke besar (A-Z)", "Mengurutkan dari besar ke kecil (Z-A)", "Mengacak urutan", "Mengelompokkan data"], answer: "Mengurutkan dari besar ke kecil (Z-A)", explanation: "DESC (Descending) adalah urutan menurun (terbesar di atas)." },
+                { question: "Dimana posisi penulisan ORDER BY yang benar?", options: ["Paling awal query", "Sebelum WHERE", "Setelah FROM", "Paling akhir query"], answer: "Paling akhir query", explanation: "Urutan: SELECT -> FROM -> JOIN -> WHERE -> GROUP BY -> HAVING -> ORDER BY." },
+                { question: "HAVING digunakan untuk memfilter...", options: ["Baris data mentah (sebelum grouping)", "Hasil agregasi (setelah grouping)", "Nama tabel", "Kolom tertentu"], answer: "Hasil agregasi (setelah grouping)", explanation: "WHERE memfilter baris, HAVING memfilter hasil grup (misal: HAVING COUNT(*) > 5)." },
+                { question: "Jika kita ingin mengurutkan data berdasarkan dua kolom: Nama (A-Z) lalu Nilai (Tinggi-Rendah), sintaksnya...", options: ["ORDER BY nama ASC, nilai DESC", "ORDER BY nama, nilai", "ORDER BY nama DESC, nilai ASC", "SORT BY nama, nilai"], answer: "ORDER BY nama ASC, nilai DESC", explanation: "SQL mengizinkan sorting multi-level dengan arah yang berbeda untuk tiap kolom." },
+                { question: "Keyword DISTINCT digunakan untuk...", options: ["Menghapus data", "Menampilkan data yang unik (menghilangkan duplikat)", "Mengurutkan data", "Memilih tabel yang berbeda"], answer: "Menampilkan data yang unik (menghilangkan duplikat)", explanation: "SELECT DISTINCT kota FROM customer; hanya menampilkan daftar kota sekali saja meski banyak customer di sana." },
+                { question: "Pada studi kasus DVD Rental, tabel mana yang menghubungkan 'film' dan 'actor' (Many-to-Many)?", options: ["film_actor", "inventory", "category", "language"], answer: "film_actor", explanation: "Tabel perantara (junction table) diperlukan karena satu film punya banyak aktor, dan satu aktor main di banyak film." },
+                { question: "Jika SELECT COUNT(id) menghasilkan 0, padahal tabelnya ada isinya, kemungkinan...", options: ["Tabel rusak", "Semua nilai kolom ID adalah NULL", "Database error", "Sintaks salah"], answer: "Semua nilai kolom ID adalah NULL", explanation: "COUNT(kolom) mengabaikan NULL. Jika semua NULL, hasilnya 0." },
+                { question: "Query: SELECT * FROM payment LIMIT 5; akan menghasilkan...", options: ["5 pembayaran dengan nilai tertinggi", "5 pembayaran pertama yang ditemukan", "Pembayaran ke-5 saja", "Total 5 kolom"], answer: "5 pembayaran pertama yang ditemukan", explanation: "LIMIT membatasi jumlah baris output, urutannya tergantung ada ORDER BY atau tidak." },
+                { question: "Untuk melewati 10 data pertama dan mengambil 5 data berikutnya (pagination), kita gunakan...", options: ["LIMIT 5 OFFSET 10", "LIMIT 10 OFFSET 5", "SKIP 10 TAKE 5", "NEXT 5 AFTER 10"], answer: "LIMIT 5 OFFSET 10", explanation: "OFFSET 10 (lewati 10), LIMIT 5 (ambil 5 setelahnya)." },
+                { question: "Fungsi string manakah yang mengubah teks 'Hello' menjadi 'HELLO'?", options: ["LOWER()", "UPPER()", "CAPITAL()", "BIG()"], answer: "UPPER()", explanation: "UPPER() mengonversi semua karakter menjadi huruf kapital." },
+                { question: "CASE WHEN dalam SQL mirip dengan logika apa dalam pemrograman?", options: ["Looping (For/While)", "Percabangan (If-Else)", "Variabel", "Fungsi"], answer: "Percabangan (If-Else)", explanation: "CASE WHEN ... THEN ... ELSE ... END adalah struktur kondisional di SQL." },
+                { question: "Subquery adalah...", options: ["Query di dalam query lain", "Query yang dijalankan di server lain", "Query penghapus data", "Query cadangan"], answer: "Query di dalam query lain", explanation: "Contoh: SELECT * FROM t WHERE id IN (SELECT id FROM t2)." },
+                { question: "Jika kita ingin menggabungkan dua string, misal Nama Depan dan Belakang, gunakan fungsi...", options: ["MERGE()", "JOIN()", "CONCAT()", "PLUS()"], answer: "CONCAT()", explanation: "CONCAT(first_name, ' ', last_name) menggabungkan string." },
+                { question: "Manakah sintaks yang SALAH?", options: ["SELECT * FROM table", "SELECT col1, col2 FROM table", "SELECT FROM table", "SELECT count(*) FROM table"], answer: "SELECT FROM table", explanation: "Setelah SELECT harus ada kolom yang dipilih atau tanda bintang (*)." },
+                { question: "Jika muncul error 'Ambiguous column name', artinya...", options: ["Nama kolom salah eja", "Nama kolom ada di dua tabel yang di-JOIN tanpa alias", "Kolom tidak ada", "Tabel kosong"], answer: "Nama kolom ada di dua tabel yang di-JOIN tanpa alias", explanation: "SQL bingung kolom mana yang dimaksud (misal: 'id' ada di tabel A dan B). Solusi: A.id" },
+                { question: "Apa kegunaan ALIAS (AS) pada nama tabel? Misal: FROM customer c", options: ["Mengganti nama tabel secara permanen", "Menyingkat penulisan query", "Membuat tabel baru", "Menyembunyikan tabel"], answer: "Menyingkat penulisan query", explanation: "Kita bisa menulis c.id alih-alih customer.id." },
+                { question: "Operator logika yang membalikkan kondisi (TRUE jadi FALSE) adalah...", options: ["AND", "OR", "NOT", "XOR"], answer: "NOT", explanation: "Contoh: WHERE NOT (id = 1)." },
+                { question: "Jika menggunakan INNER JOIN pada tabel A (5 baris) dan B (5 baris) tapi TIDAK ADA data yang cocok, hasilnya...", options: ["5 baris", "10 baris", "0 baris", "Error"], answer: "0 baris", explanation: "Inner join hanya menampilkan yang cocok (match)." },
+                { question: "Manakah fungsi untuk mengambil tahun dari kolom tanggal '2023-12-01'?", options: ["GETYEAR()", "YEAR()", "EXTRACT(YEAR FROM ...)", "DATE_PART()"], answer: "EXTRACT(YEAR FROM ...)", explanation: "Standard SQL menggunakan EXTRACT, meski beberapa DB punya fungsi YEAR() sendiri." },
+                { question: "CROSS JOIN akan menghasilkan...", options: ["Produk Kartesian (Semua kombinasi)", "Data yang cocok saja", "Data kiri saja", "Data kanan saja"], answer: "Produk Kartesian (Semua kombinasi)", explanation: "Jika A punya 3 baris, B punya 2 baris, hasilnya 3x2 = 6 baris." },
+                { question: "Query: SELECT * FROM siswa WHERE nama LIKE 'A%s'; akan menemukan nama...", options: ["Agus", "Ananas", "Adias", "Semua benar"], answer: "Adias", explanation: "Harus diawali A dan diakhiri s. Agus (salah akhir), Ananas (salah akhir), Adias (benar)." },
+                { question: "Urutan eksekusi query yang benar oleh database adalah...", options: ["SELECT -> FROM -> WHERE", "FROM -> WHERE -> SELECT", "WHERE -> FROM -> SELECT", "SELECT -> WHERE -> FROM"], answer: "FROM -> WHERE -> SELECT", explanation: "Database harus tahu tabelnya dulu (FROM), filter baris (WHERE), baru ambil kolomnya (SELECT)." },
+                { question: "Simbol != atau <> dalam SQL berarti...", options: ["Sama dengan", "Kurang dari", "Tidak sama dengan", "Lebih besar"], answer: "Tidak sama dengan", explanation: "Keduanya digunakan untuk operator ketidaksamaan." }
+            ];
+
+            const [questions, setQuestions] = useState(defaultQuestions);
+            const [currentQuestion, setCurrentQuestion] = useState(0);
+            const [score, setScore] = useState(0);
+            const [showScore, setShowScore] = useState(false);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [isCorrect, setIsCorrect] = useState(null);
+
+            const handleRegister = (e) => {
+                e.preventDefault();
+                if(userData.nis && userData.nama) {
+                    setIsRegistered(true);
+                } else {
+                    alert("Harap isi NIS dan Nama Lengkap!");
+                }
+            };
+
+            const sendToGoogleSheet = async (finalScore) => {
+                if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("URL_GOOGLE_SCRIPT")) {
+                    console.warn("URL Google Script belum diatur.");
+                    return;
+                }
+                setIsSending(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('nis', userData.nis);
+                    formData.append('nama', userData.nama);
+                    formData.append('score', finalScore);
+                    formData.append('timestamp', new Date().toISOString());
+                    await fetch(GOOGLE_SCRIPT_URL, { method: 'POST', body: formData, mode: 'no-cors' });
+                    setSendSuccess(true);
+                } catch (error) {
+                    console.error("Gagal mengirim data", error);
+                    setSendSuccess(false);
+                } finally {
+                    setIsSending(false);
+                }
+            };
+
+            const handleAnswerOptionClick = (option) => {
+                setSelectedOption(option);
+                const correct = option === questions[currentQuestion].answer;
+                setIsCorrect(correct);
+                if (correct) setScore(prev => prev + 1);
+            };
+
+            const nextQuestion = () => {
+                const nextQ = currentQuestion + 1;
+                if (nextQ < questions.length) {
+                    setCurrentQuestion(nextQ);
+                    setSelectedOption(null);
+                    setIsCorrect(null);
+                } else {
+                    setShowScore(true);
+                    sendToGoogleSheet(score + (isCorrect ? 1 : 0));
+                }
+            };
+
+            const resetQuiz = () => {
+                setCurrentQuestion(0);
+                setScore(0);
+                setShowScore(false);
+                setSelectedOption(null);
+                setIsCorrect(null);
+                setSendSuccess(null);
+            };
+
+            if (!isRegistered) {
+                return (
+                    <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded-2xl shadow-xl border border-blue-100 animate-fadeIn">
+                        <div className="text-center mb-8">
+                            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="User" className="w-8 h-8" /></div>
+                            <h2 className="text-2xl font-bold text-slate-800">Identitas Siswa</h2>
+                            <p className="text-slate-500 text-sm mt-2">Masukkan data diri sebelum memulai kuis.</p>
+                        </div>
+                        <form onSubmit={handleRegister} className="space-y-4">
+                            <div><label className="block text-sm font-medium text-slate-700 mb-1">NIS</label><input type="text" required className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Contoh: 12345" value={userData.nis} onChange={(e) => setUserData({...userData, nis: e.target.value})} /></div>
+                            <div><label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label><input type="text" required className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Nama Lengkap Anda" value={userData.nama} onChange={(e) => setUserData({...userData, nama: e.target.value})} /></div>
+                            <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg mt-4 flex justify-center items-center gap-2">Mulai Kuis <Icon name="ChevronRight" className="w-4 h-4" /></button>
+                        </form>
+                    </div>
+                );
+            }
+
+            if (showScore) {
+                return (
+                    <div className="max-w-2xl mx-auto animate-fadeIn">
+                        <div className="bg-white p-8 rounded-2xl shadow-xl text-center border-t-4 border-blue-600">
+                            <div className="mb-6">
+                                {score === questions.length ? <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="CheckCircle" className="w-10 h-10" /></div> : <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="BookOpen" className="w-10 h-10" /></div>}
+                                <h2 className="text-3xl font-bold text-slate-800">Kuis Selesai!</h2>
+                                <p className="text-slate-500 mt-2">Halo, <span className="font-bold text-blue-600">{userData.nama}</span> ({userData.nis})</p>
+                            </div>
+                            <div className="text-6xl font-black text-blue-600 mb-6">{score} <span className="text-2xl text-slate-400 font-medium">/ {questions.length}</span></div>
+                            <p className="mb-8 text-slate-600">Kamu menjawab benar {score} dari {questions.length} pertanyaan.</p>
+                            <div className="mb-8 p-4 bg-slate-50 rounded-lg text-sm">
+                                {isSending ? <div className="flex items-center justify-center gap-2 text-blue-600"><Icon name="Loader2" className="w-4 h-4 animate-spin" /> Menyimpan hasil...</div> : sendSuccess ? <div className="flex items-center justify-center gap-2 text-green-600 font-bold"><Icon name="Check" className="w-4 h-4" /> Hasil berhasil direkam!</div> : <div className="flex items-center justify-center gap-2 text-orange-500"><Icon name="Save" className="w-4 h-4" /> Gagal menyimpan (Cek koneksi)</div>}
+                            </div>
+                            <button onClick={resetQuiz} className="bg-blue-600 text-white px-8 py-3 rounded-full font-bold hover:bg-blue-700 transition flex items-center gap-2 mx-auto"><Icon name="RefreshCw" className="w-5 h-5" /> Ulangi Kuis</button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="max-w-2xl mx-auto animate-fadeIn">
+                    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg border border-slate-200 relative">
+                        <div className="flex justify-between items-center mb-6 border-b pb-4">
+                            <div><h2 className="text-xl font-bold text-slate-800">Pertanyaan {currentQuestion + 1} <span className="text-sm font-normal text-slate-500">/ {questions.length}</span></h2><div className="text-xs text-slate-400 mt-1">Siswa: {userData.nama}</div></div>
+                        </div>
+                        <h3 className="text-lg md:text-xl font-medium mb-6 text-slate-800 leading-relaxed">{questions[currentQuestion].question}</h3>
+                        <div className="space-y-3">
+                            {questions[currentQuestion].options.map((option, index) => (
+                                <button key={index} onClick={() => !selectedOption && handleAnswerOptionClick(option)} disabled={selectedOption !== null} className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center ${selectedOption === option ? (option === questions[currentQuestion].answer ? "bg-green-50 border-green-500 text-green-800" : "bg-red-50 border-red-500 text-red-800") : "border-slate-100 hover:border-blue-300 hover:bg-blue-50 text-slate-700"} ${selectedOption !== null && option === questions[currentQuestion].answer ? "bg-green-50 border-green-500 text-green-800" : ""}`}>
+                                    <span>{option}</span>
+                                    {selectedOption === option && (option === questions[currentQuestion].answer ? <Icon name="CheckCircle" className="w-5 h-5" /> : <Icon name="XCircle" className="w-5 h-5" />)}
+                                </button>
+                            ))}
+                        </div>
+                        {selectedOption && (
+                            <div className="mt-6 animate-fadeIn bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div className={`p-3 rounded mb-4 text-sm font-medium ${isCorrect ? 'text-green-700' : 'text-red-700'}`}><strong>Penjelasan: </strong> {questions[currentQuestion].explanation}</div>
+                                <div className="flex gap-3"><button onClick={nextQuestion} className="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition flex justify-center items-center gap-2">Selanjutnya <Icon name="ChevronRight" className="w-5 h-5" /></button></div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
