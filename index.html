@@ -468,17 +468,50 @@
                 { question: "Simbol != atau <> dalam SQL berarti...", options: ["Sama dengan", "Kurang dari", "Tidak sama dengan", "Lebih besar"], answer: "Tidak sama dengan", explanation: "Keduanya digunakan untuk operator ketidaksamaan." }
             ];
 
-            const [questions, setQuestions] = useState(defaultQuestions);
+            const [questions, setQuestions] = useState([]);
             const [currentQuestion, setCurrentQuestion] = useState(0);
             const [score, setScore] = useState(0);
             const [showScore, setShowScore] = useState(false);
             const [selectedOption, setSelectedOption] = useState(null);
             const [isCorrect, setIsCorrect] = useState(null);
 
+            // Utility to shuffle array
+            const shuffleArray = (array) => {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            };
+
+            const initializeQuiz = () => {
+                // Shuffle questions and options
+                const shuffledQuestions = shuffleArray(defaultQuestions).map(q => ({
+                    ...q,
+                    options: shuffleArray(q.options)
+                }));
+                setQuestions(shuffledQuestions);
+                setCurrentQuestion(0);
+                setScore(0);
+                setShowScore(false);
+                setSelectedOption(null);
+                setIsCorrect(null);
+                setSendSuccess(null);
+            };
+
+            // Initialize quiz on first load
+            useEffect(() => {
+                if (isRegistered && questions.length === 0) {
+                    initializeQuiz();
+                }
+            }, [isRegistered]);
+
             const handleRegister = (e) => {
                 e.preventDefault();
                 if(userData.nis && userData.nama) {
                     setIsRegistered(true);
+                    initializeQuiz();
                 } else {
                     alert("Harap isi NIS dan Nama Lengkap!");
                 }
@@ -526,12 +559,7 @@
             };
 
             const resetQuiz = () => {
-                setCurrentQuestion(0);
-                setScore(0);
-                setShowScore(false);
-                setSelectedOption(null);
-                setIsCorrect(null);
-                setSendSuccess(null);
+               initializeQuiz();
             };
 
             if (!isRegistered) {
@@ -570,6 +598,8 @@
                     </div>
                 );
             }
+
+            if (questions.length === 0) return null; // Avoid render if not initialized
 
             return (
                 <div className="max-w-2xl mx-auto animate-fadeIn">
